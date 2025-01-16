@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chrome Dino Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f7f7f7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            background: white;
+            border: 2px solid #333;
+        }
+        .game-over {
+            font-size: 24px;
+            font-weight: bold;
+            color: red;
+            text-align: center;
+            margin-top: 20px;
+        }
+        .score {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 20px;
+            font-weight: bold;
+        }
+        .restart {
+            display: none;
+            position: absolute;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #333;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .restart:hover {
+            background-color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="score">Score: 0</div>
+    <button class="restart">Restart</button>
+    <canvas id="gameCanvas" width="800" height="200"></canvas>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.querySelector('.score');
+        const restartButton = document.querySelector('.restart');
+
+        let gameSpeed = 5;
+        let isJumping = false;
+        let jumpVelocity = 0;
+        let gravity = 0.5;
+        let tRexY = 150;
+        let score = 0;
+        let isGameOver = false;
+
+        const tRex = { x: 50, y: tRexY, width: 20, height: 20 };
+        const ground = { x: 0, y: 180, width: canvas.width, height: 20 };
+        const obstacles = [];
+
+        const createObstacle = () => {
+            const height = 30 + Math.random() * 50;
+            obstacles.push({ x: canvas.width, y: 180 - height, width: 20, height });
+        };
+
+        const updateGame = () => {
+            if (isGameOver) return;
+
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw ground
+            ctx.fillStyle = '#333';
+            ctx.fillRect(ground.x, ground.y, ground.width, ground.height);
+
+            // Draw T-Rex
+            ctx.fillStyle = '#555';
+            ctx.fillRect(tRex.x, tRex.y, tRex.width, tRex.height);
+
+            // Update T-Rex position
+            if (isJumping) {
+                tRex.y += jumpVelocity;
+                jumpVelocity += gravity;
+                if (tRex.y >= tRexY) {
+                    tRex.y = tRexY;
+                    isJumping = false;
+                }
+            }
+
+            // Update obstacles
+            for (let i = 0; i < obstacles.length; i++) {
+                const obs = obstacles[i];
+                obs.x -= gameSpeed;
+
+                // Draw obstacle
+                ctx.fillStyle = '#888';
+                ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+
+                // Collision detection
+                if (
+                    tRex.x < obs.x + obs.width &&
+                    tRex.x + tRex.width > obs.x &&
+                    tRex.y < obs.y + obs.height &&
+                    tRex.y + tRex.height > obs.y
+                ) {
+                    gameOver();
+                }
+
+                // Remove off-screen obstacles
+                if (obs.x + obs.width < 0) obstacles.splice(i, 1);
+            }
+
+            // Spawn new obstacles
+            if (Math.random() < 0.01) createObstacle();
+
+            // Update score
+            score++;
+            scoreElement.textContent = `Score: ${score}`;
+
+            // Increase game speed over time
+            gameSpeed += 0.002;
+
+            // Loop
+            requestAnimationFrame(updateGame);
+        };
+
+        const jump = () => {
+            if (isJumping || isGameOver) return;
+            isJumping = true;
+            jumpVelocity = -10;
+        };
+
+        const gameOver = () => {
+            isGameOver = true;
+            scoreElement.textContent += ' | GAME OVER';
+            restartButton.style.display = 'block';
+        };
+
+        const restartGame = () => {
+            isGameOver = false;
+            score = 0;
+            gameSpeed = 5;
+            obstacles.length = 0;
+            tRex.y = tRexY;
+            restartButton.style.display = 'none';
+            scoreElement.textContent = 'Score: 0';
+            updateGame();
+        };
+
+        // Event listeners
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') jump();
+        });
+        restartButton.addEventListener('click', restartGame);
+
+        // Start game
+        updateGame();
+    </script>
+</body>
+</html>
